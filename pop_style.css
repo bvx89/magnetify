@@ -1,0 +1,69 @@
+body {
+	min-width: 410px;
+	min-height: 100px;
+	background: url(pop-bg.png) fixed no-repeat bottom left;
+	overflow-x: hidden;
+	font-family: 'Ledger', serif;
+	font-size: 12px;
+}
+
+* {
+	padding: 0;
+	margin: 0;
+}
+
+form {
+	margin-left: 30px;
+	width: 370px;
+}
+
+div {
+	padding: 3px;
+}
+
+h1 {
+	font-family: 'Roboto', sans-serif;
+	position: relative;
+	top: 5px;
+	left: 10px;
+}
+
+input {
+	margin-top: 10px;
+}
+
+input[type=submit] {
+	float: right;
+	margin-right: 50px;
+	padding: 3px;
+	margin-bottom: 5px;
+}
+
+label {
+	font-weight: bold;
+}
+
+ul {
+	color: #333333;
+	list-style-image:url('dash.png');
+	margin-left: 18px;
+}
+
+.run-animation {
+	-webkit-animation: fade-in-out 3s ease;
+}
+
+span {
+	position: relative;
+	left: 30px;
+	top: 10px;
+	color: #3b652f;
+	
+}
+
+@-webkit-keyframes fade-in-out {
+	0%   {opacity: 0;}
+	25%  {opacity: 100;}
+	75%  {opacity: 100;}
+	100% {opacity: 0;}
+}
