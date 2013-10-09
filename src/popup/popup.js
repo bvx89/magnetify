@@ -57,24 +57,23 @@ window.onload = function() {
 		}
 		
 		if (hasChanged) {
-			chrome.runtime.sendMessage({command: 'prefs-changed', preferences : prefs}, function(response) {
-				span.innerText = "Success";
+			chrome.runtime.sendMessage({command: 'prefs-changed', 
+				preferences : prefs});
+			span.innerText = "Saved";
+		
+			// Removing the animation class
+			span.classList.remove("run-animation");
+
+			// Triggering reflow /* The actual magic */
+			span.offsetWidth = span.offsetWidth;
+
+			// Re-adding the animation class
+			span.classList.add("run-animation");
 			
-				// -> removing the class
-				span.classList.remove("run-animation");
-
-				// -> triggering reflow /* The actual magic */
-				// without this it wouldn't work. Try uncommenting the line and the transition won't be retriggered.
-				span.offsetWidth = span.offsetWidth;
-
-				// -> and re-adding the class
-				span.classList.add("run-animation");
-				
-				// Remove text when animation is done
-				span.addEventListener('webkitAnimationEnd', function(){
-					span.innerText = "";
-					_gaq.push(['_trackEvent', 'Settings saved', 'clicked']);
-				});
+			// Remove text when animation is done
+			span.addEventListener('webkitAnimationEnd', function(){
+				span.innerText = "";
+				_gaq.push(['_trackEvent', 'Settings saved', 'clicked']);
 			});
 		}
 	});

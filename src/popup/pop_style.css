@@ -1,10 +1,10 @@
 body {
-	min-width: 410px;
-	min-height: 100px;
-	background: url(pop-bg.png) fixed no-repeat bottom left;
-	overflow-x: hidden;
+	width: 440px;
+	height: 300px;
+	background: url('../../../img/pop-bg.png') fixed no-repeat bottom left;
 	font-family: 'Ledger', serif;
 	font-size: 12px;
+	overflow: hidden;
 }
 
 * {
@@ -13,12 +13,13 @@ body {
 }
 
 form {
-	margin-left: 30px;
-	width: 370px;
+	margin-left: 40px;
+	width: 400px;
 }
 
-div {
+header {
 	padding: 3px;
+	width: 100%;
 }
 
 h1 {
@@ -36,7 +37,7 @@ input[type=submit] {
 	float: right;
 	margin-right: 50px;
 	padding: 3px;
-	margin-bottom: 5px;
+	margin-bottom: 20px;
 }
 
 label {
@@ -45,8 +46,9 @@ label {
 
 ul {
 	color: #333333;
-	list-style-image:url('dash.png');
+	list-style-image:url('../../../img/dash.png');
 	margin-left: 18px;
+	width: 320px;
 }
 
 .run-animation {

@@ -1,4 +1,10 @@
+// Sites that will not be injected
 var excluded = ["chrome-devtools://", "chrome://newtab/"];
+
+// When parsing spoti.fi URLs, how far down the page should
+// the index be before starting to search for keyword
+var lengthFromEndOfPage = 800;
+
 var prefs = {
 	injectingEnabled : true,
 	addressEnabled : true
@@ -7,7 +13,7 @@ var prefs = {
 // Add type and ID to URI
 var id_length = 22;
 
-// Init function
+// Init function. Loads preferences from localStorage (if any)
 function init() {
 	// Get options from local storage
 	prefs.injectingEnabled = localStorage['injecting'];
@@ -35,22 +41,51 @@ function setListener() {
 init();
 
 // Message receiver. Always enabled.
-chrome.runtime.onMessage.addListener(
-	function(request, sender, sendResponse) {
-		console.log('Message recieved:' + request.command);
+chrome.runtime.onMessage.addListener(function(request, sender) {
 		// If the request comes from opening the URL
 		if (request.command === 'convert-url') {
-			var uri = createUriFromURL(request.link);
-			sendResponse({link : uri});
+			var link = request.link;
+			var id = sender.tab.id;
+			
+			// If it's a redirect, find out what the URL really is
+			if (link.indexOf('spoti.fi') !== -1) {
+				
+				// Start XHR request
+				var xhr = new XMLHttpRequest();
+				xhr.open("GET", link, true);
+				xhr.onreadystatechange = function() {
+					// Done redirection, now we have the page
+					if (xhr.readyState == 4) {
+					
+						// Get the page as a string
+						var page = xhr.responseText;
+						var uri = findUriFromHTML(page);
+						changeURLofTab(id, uri);
+					}
+					
+				}
+				xhr.send();
+			} else {
+				var uri = createUriFromURL(request.link);
+				changeURLofTab(id, uri);	
+			}
+			
 		} else if (request.command === 'prefs-changed') {
 			console.log(prefs);
 			prefs = request.preferences;
 			setListener();
-			sendResponse('done');
 		}
 	}
 );
 
+// Change URL of tab
+function changeURLofTab(id, url) {
+	// Tell the current tab to open URI
+	chrome.tabs.executeScript(id, {code :
+		'window.location.href = "' + url + '"'});
+}
+
+// 
 function pageUpdated(tabId, changeInfo) {	
 	
 	// If the site loading is open.spotify.com, do a routine to close tab
@@ -72,8 +107,7 @@ function pageUpdated(tabId, changeInfo) {
 				tab.url.indexOf("chrome://newtab/") === -1) {
 
 				// inject script into web site
-				console.log('injecting');
-				chrome.tabs.executeScript(tabId, {file : "spot-url.js"});
+				chrome.tabs.executeScript(tabId, {file : "src/spot-url.js"});
 			}
 		});
 	} 
@@ -81,15 +115,8 @@ function pageUpdated(tabId, changeInfo) {
 
 // Procedure to capture spotify URL, close tab and open spotify URI.
 function handleLinkOpened() {
-	// Get selected tab
-	chrome.tabs.query(	{
+	getCurrentTab(function(spotTab) {
 						
-						"currentWindow": true,
-						"active": true,
-						"windowType": "normal"
-						}, function(spotTab) {
-						
-		console.log(spotTab[0]);
 		// Find URL and convert it to a URI
 		var page_url = spotTab[0].url;			
 		var uri = createUriFromURL(page_url);
@@ -112,6 +139,31 @@ function handleLinkOpened() {
 		});
 	});
 }
+
+// Finds Spotify URL inside a Spotify page
+function findUriFromHTML(page) {
+	// Find the correct URL from the JavaScript
+	var start = page.indexOf('landingURL', page.length - lengthFromEndOfPage);
+	var end = page.indexOf('"', start + 15);
+	var unparsed = '"' + page.substring(start + 13, end) + '"';
+	
+	var parsed = JSON.parse(unparsed)
+	return createUriFromURL(parsed);
+
+}
+
+function getCurrentTab(callback) {
+		// Get selected tab
+	chrome.tabs.query(
+		{						
+		"currentWindow": true,
+		"active": true,
+		"windowType": "normal"
+		}, function(spotTab) {
+			callback(spotTab);
+		});
+}
+
 
 // Filters out info and creates valid URI from a Spotify URL.
 function createUriFromURL(URL) {
