@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+<title>Magnetify</title>
+<script src="options.js"></script>
+<link href='http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css' />
+<link href="options_style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+	<div id="container">
+		<header>
+			<img src="../../img/icon48.png" style="vertical-align:middle"/>
+			<h1 style="display:inline">Magnetify settings</h1>
+		</header>
+		<form name="form">
+
+			<input type="checkbox" name="link" checked> 
+			<label for="link">Redirect links on  web pages</label>
+			<br />
+			<ul>
+				<li>
+				This will redirect Spotify links from every web page to the desktop application. Remember to update each page if you disable and enable this feature.
+				</li>
+			</ul>
+			<input type="checkbox" name="url" checked> 
+			<label for="url">Redirect from address bar</label>
+			<br />
+			<ul>
+				<li>
+				The first option won't work if you click on a Spotify link outside of Chrome or enter the link manually in the address bar. This will still redirect your browser to open the Spotify desktop application and close the web player.
+				</li>
+			</ul>
+			<span id="res"></span>
+			<input type="submit" id="submit" name="save" value="Save" disabled/>
+
+		</form>
+	</div>
+</body>
+</html>

@@ -1,93 +1,103 @@
-var prefs = {
-	injectingEnabled : true,
-	addressEnabled : true
-}
+// Make M.* equal to empty objects if not defined
+var M = M || {};
+M.Storage = M.Storage || {};
 
-var form;
+M.Popup = (function() {
+	var template;
+	var container;
+	function render(data, index) {
+		// Clone the template
+		var t = $(template).clone();
 
+		// Set the thumbnail pic
+		t.find('img')[0].src = data.thumb;
 
-window.onload = function() {
-	// Get options from local storage
-	prefs.injectingEnabled = localStorage['injecting'];
-	prefs.addressEnabled = localStorage['address'];
+	
+		$(container).append(t);
 
-	// Set default values if nothing is stored
-	if (!prefs.injectingEnabled)
-		prefs.injectingEnabled = true;
-	
-	if (!prefs.addressEnabled)
-		prefs.addressEnabled = true;
-	
-	// Convert from strings to boolean
-	prefs.injectingEnabled = (prefs.injectingEnabled === "false" ? false : true);
-	prefs.addressEnabled = (prefs.addressEnabled === "false" ? false : true)
-	
-	// Get reference to the form
-	form = document.form;
-	
-	// Grab elements
-	var iLink = form.elements['link'];
-	var iUrl = form.elements['url'];
-	var span = document.getElementById('res');
-	
-	// Set current configuration
-	iLink.checked = prefs.injectingEnabled;
-	iUrl.checked = prefs.addressEnabled;
-	
-	// Set up listener
-	form.addEventListener('submit', function(evt){
-		evt.preventDefault();
-
-		// Get content
-		var link = iLink.checked;
-		var url = iUrl.checked;
-		
-		// Varify that the content has changed
-		var hasChanged = false;
-		if (link !== prefs.injectingEnabled) {
-			localStorage['injecting'] = link;
-			prefs.injectingEnabled = link;
-			hasChanged = true;
+		// Find out which type of data
+		switch (data.info.type) {
+			case 'track':
+				renderTrack(data.track, t, index);
+				break;
 		}
+	}
+	
+	function renderTrack(data, t, index) {
+		t.data('url', data.href);
+		t.attr('id', index);
 		
-		if (url !== prefs.addressEnabled) {
-			localStorage['address'] = url;
-			prefs.addressEnabled = url;
-			hasChanged = true;
+		t.find('.artist')[0].innerHTML = data.artists[0].name;
+		t.find('.track')[0].innerHTML = data.name;
+
+		t.on('click', function() {
+			console.log(this);
+			var g = this;
+			var url = $(this).data('url');
+			console.log('url: ' + url);
+			window.close();
+			chrome.runtime.sendMessage({command: "open-uri", link: url});
+			console.log('sent message');
+		});
+		t.hover(function() {
+			$(this).addClass('hover');
+		}, function() {
+			$(this).removeClass('hover');
+		});
+	}
+
+	function renderAll() {
+		var objects = M.Storage.getLookup();
+		for(var i in objects) {
+			render(objects[i], i);
 		}
-		
-		if (hasChanged) {
-			chrome.runtime.sendMessage({command: 'prefs-changed', 
-				preferences : prefs});
-			span.innerText = "Saved";
-		
-			// Removing the animation class
-			span.classList.remove("run-animation");
+	}
 
-			// Triggering reflow /* The actual magic */
-			span.offsetWidth = span.offsetWidth;
+	return {
+		init : function() {
+			loadScript('storage', function() {
+				// Find the template to use for links and
+				// the container to append each link to
+				template = $( '#tmpl' );
+				container = $( '#container' );		
 
-			// Re-adding the animation class
-			span.classList.add("run-animation");
-			
-			// Remove text when animation is done
-			span.addEventListener('webkitAnimationEnd', function(){
-				span.innerText = "";
-				_gaq.push(['_trackEvent', 'Settings saved', 'clicked']);
+				renderAll();
 			});
+		},
+
+		
+		render : function() {
+			renderAll();
 		}
-	});
+	}
+
+}());
+
+$(document).ready(function() {
+	/*
+	 * The worst hack ever to fix the scrollbar issue  
+	 * when opening the Browser UI popup
+	 */	
+	document.body.style.width = "301px"
+	setTimeout(function() {
+		document.body.style.width = "300px"
+		}, 50);
+
+	M.Popup.init();
+});
+
+
+// Render the popup in background
+chrome.runtime.onMessage.addListener(function(message, sender, response) {
+	if (message.command === 'render-popup') {
+		M.Popup.render();
+	}
+});
+
+
+function loadScript(scriptName, callback) {
+    var scriptEl = document.createElement('script');
+    scriptEl.src = chrome.extension.getURL('lib/' + scriptName + '.js');
+    scriptEl.addEventListener('load', callback, false);
+    document.head.appendChild(scriptEl);
 }
-
-
-// GOOGLE ANALYTICS
-var _gaq = _gaq || [];
-_gaq.push(['_setAccount', 'UA-43115914-1']);
-_gaq.push(['_trackPageview']);
-
-(function() {
-  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-  ga.src = 'https://ssl.google-analytics.com/ga.js';
-  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-})();
-

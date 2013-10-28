@@ -1,13 +1,11 @@
 // Add global listener to click events on a page
-if (addedSpotifyListener == undefined) {
-	document.addEventListener('click', callback, false);
-}
+document.addEventListener('click', callback, false);
 
 // Callback function for the click event
 function callback(e) {
     var e = window.e || e;
 
-	// If not a link, return
+	// If not a link, return true
     if (e.target.tagName !== 'A')
         return true;
 
@@ -24,11 +22,15 @@ function callback(e) {
 		}
 		
 		// Get URI from background page
-		chrome.runtime.sendMessage({command: "convert-url", link: url});
+		chrome.runtime.sendMessage({command: "convert-url", link: url}, 
+			function(uri) {
+				console.log("opening uri: " + uri);
+				window.location.href = uri
+			}
+		);
 		
 	} else {
+		// If no Spotify link, return true
 		return true;
 	}
 }
-
-var addedSpotifyListener = true;

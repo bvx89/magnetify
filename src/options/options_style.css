@@ -1,10 +1,9 @@
 body {
-	width: 440px;
-	height: 300px;
-	background: url('../../../img/pop-bg.png') fixed no-repeat bottom left;
-	font-family: 'Ledger', serif;
+	font-family: 'Roboto', serif;
 	font-size: 12px;
 	overflow: hidden;
+	background: rgb(220, 230, 220);
+	margin-top: 50px;
 }
 
 * {
@@ -12,16 +11,27 @@ body {
 	margin: 0;
 }
 
-form {
-	margin-left: 40px;
-	width: 400px;
+div#container {
+	width: 500px;
+	margin: 0 auto;
+	border-radius: 10px;
+	border: 5px solid rgb(135, 170, 100);
+	background: white;
+	padding: 20px;
 }
 
 header {
-	padding: 3px;
-	width: 100%;
+	padding: 10px;
+	width: 400px;
+	margin: 0 auto;
 }
 
+form {
+	margin: 0 auto;
+	padding-left: 40px;
+	width: 400px;
+}
+ 
 h1 {
 	font-family: 'Roboto', sans-serif;
 	position: relative;
@@ -34,21 +44,23 @@ input {
 }
 
 input[type=submit] {
-	float: right;
 	margin-right: 50px;
 	padding: 3px;
-	margin-bottom: 20px;
 }
 
 label {
 	font-weight: bold;
+	font-size: 16px;
 }
 
 ul {
 	color: #333333;
-	list-style-image:url('../../../img/dash.png');
+	/* list-style-image:url('dash.png'); */
+	list-style-type: none;
 	margin-left: 18px;
 	width: 320px;
+	font-size: 12px;
+	margin-bottom: 20px;
 }
 
 .run-animation {
@@ -57,10 +69,11 @@ ul {
 
 span {
 	position: relative;
-	left: 30px;
-	top: 10px;
-	color: #3b652f;
-	
+	right: 50px;
+	font-size: 15px;
+	top: 15px;
+	color: rgb(135, 170, 100);
+	float: right;
 }
 
 @-webkit-keyframes fade-in-out {
