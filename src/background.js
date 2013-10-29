@@ -63,7 +63,7 @@ M = (function() {
 			// Find out if the URI is new
 			var isNew = true;
 			for(var link in lastLinks) {
-				if (link === uri)
+				if (lastLinks[link] === uri)
 					isNew = false;
 			}
 			
@@ -76,12 +76,14 @@ M = (function() {
 					lookupObjects.pop();
 
 				// Ask spotify for the Spotify object in background
-				M.Lookup.getObject(uri);
+				if (uri.indexOf('playlist') !== -1) {
+					M.Lookup.getSpecialObject(uri);
+				} else {
+					M.Lookup.getDefaultObject(uri);
+				}
 
 				// Store the links
 				M.Storage.setLinks(lastLinks);
-			} else {
-				console.log("existed");
 			}
 		},
 
@@ -131,7 +133,7 @@ M.Lookup = (function($) {
 	var EMBED_URL = 'https://embed.spotify.com/oembed/?url=';
 
 	return {
-		getObject : function(uri) {
+		getDefaultObject : function(uri) {
 			// Set up main lookup
 			var lookup = $.ajax({
 				url: URL + uri,
@@ -152,6 +154,42 @@ M.Lookup = (function($) {
 				// Add it
 				M.addLookupObject(main[0]);
 			});
+		},
+
+		getSpecialObject : function(uri) {
+			// Set up embed lookup
+			var embed = $.ajax({
+				url: EMBED_URL + uri,
+				dataType: 'json',
+			});
+
+			// Wait for query to be done
+			$.when(embed).done(function(data) {
+				var obj = {};
+				obj.info = {};
+				obj.playlist = {};
+
+				// Set thumbnail
+				obj.thumb = data.thumbnail_url.replace('cover', '60');
+
+				// Find username/user id
+				if (uri.indexOf("user") !== -1) {
+					obj.user = uri.slice(	uri.indexOf("user") + 5, 
+							uri.indexOf(":", uri.indexOf("user") + 5));
+
+				}
+
+				// find playlist id
+				if (uri.indexOf("playlist") !== -1) {
+					obj.playlist.id = uri.slice(uri.indexOf("playlist") + 9);
+					obj.info.type = 'playlist';
+				}
+
+				// Add uri
+				obj.playlist.href = uri;
+
+				M.addLookupObject(obj);
+			});
 		} 
 	}
 }(jQuery));
@@ -160,6 +198,7 @@ M.Lookup = (function($) {
 M.Settings = (function() {
 	// Sites that will not be injected
 	var illegalPaths = ["chrome-devtools://", 
+						"chrome-extension://",
 						"chrome://newtab/"];
 	var spotifyPaths = ["//open.spotify.com", 
 						"//play.spotify.com"];
@@ -281,14 +320,12 @@ M.Parser = (function() {
 
 
 M.Page = (function () {
-	// Local object that contains information of all tabs
-	var tabsURL = {};
+	var mainTab;
+
 
 	function injectTabById(tabId) {
 		chrome.tabs.executeScript(tabId, {file : "src/listener.js"});
 	};
-
-	var changingTab = false;
 
 	function getCurrentTab(callback) {
 		// Get selected tab
@@ -309,35 +346,43 @@ M.Page = (function () {
 	}
 
 	function setURIofTab(tabId, uri) {
-		changingTab = true;
-
 		if (tabId === undefined) {
-			// Tell the current tab to open URI
-			getCurrentTab(function(tabObject) {
-				forceChangeOfURI(tabObject.id, uri);
-			});
+			// If mainTab not set
+			if (mainTab === undefined) {
+				// Tell the current tab to open URI
+				getCurrentTab(function(tabObject) {
+					mainTab = tabObject.id;
+					forceChangeOfURI(mainTab, uri);
+				});
+			} else {
+				// Be sure that mainTab exists
+				chrome.tabs.get(mainTab, function(tab) {
+					if (tab !== undefined) {
+						forceChangeOfURI(tab.id, uri);
+					} else {
+
+						// Find a new tab to replace it
+						mainTab = undefined;
+						setURIofTab(undefined, uri);
+					}
+				});
+			}
+			
 		} else {
+			if (mainTab === undefined) {
+				mainTab = tabId;
+			}
 			forceChangeOfURI(tabId, uri);
 		}
 	};
 
 	function forceChangeOfURI(tabId, uri) {
-		// Set location blank
-		console.log("id: " + tabId + ", uri: " + uri);
-		chrome.tabs.executeScript(tabId, {
-					file : 'src/injecter.js',
-		}, function(result) {
-			chrome.tabs.executeScript(tabId, {
-					code: 'l("' + uri + '")',
-			}, function(result2) {
-
-				changingTab = false;
-				// Check for error
-				if (chrome.runtime.lastError) {
-					console.log(chrome.runtime.lastError.message);
-				}
-			});
-		});
+		console.log("opening tabId: " + tabId + " with uri: " + uri);
+		chrome.tabs.sendMessage(tabId, {command: "inject-uri", link: uri}, 
+			function(response) {
+	    		console.log(response);
+	  		}
+	  	);
 	}
 
 	function handleAddressChange(url) {
@@ -368,64 +413,32 @@ M.Page = (function () {
 	}
 
 	return {
-		getTabs : tabsURL,
 
 		pageUpdated : function(tabId, changeInfo) {
-			if (changingTab) return;
+			// If page is loading.
+			if (changeInfo.status === 'loading' && M.Settings.isAddressChecking) {
+				
 
-			// If page is loading, grab the URL of that page
-			if (changeInfo.status === 'loading') {
-				// Set the url of the current tab
-				tabsURL[tabId] = changeInfo.url || tabsURL[tabId];
-
-				if (M.Settings.isAddressChecking) {
-					var url = tabsURL[tabId];
-
-					if (url === undefined) {
-						getURLofTab(tabId, function(correctURL) {
-							handleAddressChange(correctURL);
-						});
-					} else {
-						handleAddressChange(url)
-					}					
-				}
+				getURLofTab(tabId, function(correctURL) {
+					handleAddressChange(correctURL);
+				});	
 				
 			// Inject site with JS if it's valid and done loading
 			} else if (changeInfo.status === 'complete' && M.Settings.isInjecting) {
-				var url = tabsURL[tabId];
+				getURLofTab(tabId, function(correctURL) {
+					if (correctURL === undefined) return;
 
-				// Find URL if not in the list
-				if (url === undefined) {
-					getURLofTab(tabId, function(correctURL) {
-						// Sometimes, the URL doesn't exist O.o
-						if (correctURL !== undefined) {
-							// Validate that the page is not in the excluded list
-							var isNotExcluded = M.Settings.getIllegalPaths.every(
-								function(path) {
-									// Only need one element to return false for it to be false
-									return correctURL.indexOf(path) === -1;
-								}
-							);
-
-							if (isNotExcluded)
-								injectTabById(tabId);
-						}
-					});
-				} else {
 					// Validate that the page is not in the excluded list
 					var isNotExcluded = M.Settings.getIllegalPaths.every(
 						function(path) {
 							// Only need one element to return false for it to be false
-							return url.indexOf(path) === -1;
+							return correctURL.indexOf(path) === -1;
 						}
 					);
 
 					if (isNotExcluded)
 						injectTabById(tabId);
-				}	
-
-
-				
+				});
 			} 
 		},
 

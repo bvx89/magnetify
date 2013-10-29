@@ -22,9 +22,9 @@ function callback(e) {
 		}
 		
 		// Get URI from background page
-		chrome.runtime.sendMessage({command: "convert-url", link: url}, 
+		chrome.runtime.sendMessage({command: 'convert-url', link: url}, 
 			function(uri) {
-				console.log("opening uri: " + uri);
+				console.log('opening uri: ' + uri);
 				window.location.href = uri
 			}
 		);
@@ -34,3 +34,14 @@ function callback(e) {
 		return true;
 	}
 }
+
+chrome.runtime.onMessage.addListener(
+	function(message, sender, response) {
+		if (message.command === 'inject-uri') {
+			response('opening uri');
+			window.location.href = message.link;
+		}
+	}
+);
+
+console.log('injected');

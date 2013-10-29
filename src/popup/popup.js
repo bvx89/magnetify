@@ -12,38 +12,59 @@ M.Popup = (function() {
 		// Set the thumbnail pic
 		t.find('img')[0].src = data.thumb;
 
-	
-		$(container).append(t);
+		// Register click events
+		t.on('click', function() {
+			var url = $(this).data('url');
+			// window.close();
+			console.log(url);
+			chrome.runtime.sendMessage({command: "open-uri", link: url});
+		});
+
+		// Set ID of link
+		t.attr('id', (index+1));
 
 		// Find out which type of data
 		switch (data.info.type) {
 			case 'track':
-				renderTrack(data.track, t, index);
+				renderTrack(data.track, t);
+				break;
+			case 'album':
+				renderAlbum(data.album, t);
+				break;
+			case 'artist':
+				renderArtist(data.artist, t);
+				break;
+			case 'playlist':
+				renderPlaylist(data.playlist, t);
 				break;
 		}
+
+		// Append link
+		$(container).append(t);
+	}
+
+	function renderPlaylist(data, t) {
+		t.data('url', data.href);
+		t.find('.track')[0].innerHTML = data.id;
+		t.find('.artist')[0].innerHTML = 'Playlist ID:';
+	}
+
+	function renderArtist(data, t) {
+		t.data('url', data.href);
+		t.find('.track')[0].innerHTML = data.name;
+		t.find('.artist')[0].innerHTML = 'Artist:';
 	}
 	
-	function renderTrack(data, t, index) {
+	function renderAlbum(data, t) {
 		t.data('url', data.href);
-		t.attr('id', index);
-		
+		t.find('.artist')[0].innerHTML = data.artist;
+		t.find('.track')[0].innerHTML = data.name;
+	}
+
+	function renderTrack(data, t) {
+		t.data('url', data.href);
 		t.find('.artist')[0].innerHTML = data.artists[0].name;
 		t.find('.track')[0].innerHTML = data.name;
-
-		t.on('click', function() {
-			console.log(this);
-			var g = this;
-			var url = $(this).data('url');
-			console.log('url: ' + url);
-			window.close();
-			chrome.runtime.sendMessage({command: "open-uri", link: url});
-			console.log('sent message');
-		});
-		t.hover(function() {
-			$(this).addClass('hover');
-		}, function() {
-			$(this).removeClass('hover');
-		});
 	}
 
 	function renderAll() {
@@ -51,6 +72,17 @@ M.Popup = (function() {
 		for(var i in objects) {
 			render(objects[i], i);
 		}
+
+		addAnimation();
+	}
+
+	function addAnimation() {
+		$('.link div').hover(function(){
+		    $(this).addClass('hover');
+		}, function() {
+			$(this).removeClass('hover');
+		});
+
 	}
 
 	return {
@@ -78,10 +110,12 @@ $(document).ready(function() {
 	 * The worst hack ever to fix the scrollbar issue  
 	 * when opening the Browser UI popup
 	 */	
+	 /*
 	document.body.style.width = "301px"
 	setTimeout(function() {
 		document.body.style.width = "300px"
 		}, 50);
+*/
 
 	M.Popup.init();
 });
