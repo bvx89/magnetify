@@ -1,72 +1,57 @@
-var prefs = {
-	injectingEnabled : true,
-	addressEnabled : true
-}
+// Make M.* equal to empty objects if not defined
+var M = M || {};
+M.Storage = M.Storage || {};
 
-var form;
-var iLink;
-var iUrl;
-var span;
 
-window.onload = function() {
-	// Get options from local storage
-	prefs.injectingEnabled = localStorage['injecting'];
-	prefs.addressEnabled = localStorage['address'];
+M.Options = (function() {
+	// Page elements
+	var form, span, inAddress, inInject;
 
-	// Set default values if nothing is stored
-	if (!prefs.injectingEnabled)
-		prefs.injectingEnabled = true;
-	
-	if (!prefs.addressEnabled)
-		prefs.addressEnabled = true;
-	
-	// Convert from strings to boolean
-	prefs.injectingEnabled = (prefs.injectingEnabled === "false" ? false : true);
-	prefs.addressEnabled = (prefs.addressEnabled === "false" ? false : true)
-	
-	// Get reference to the form
-	form = document.form;
-	
-	// Grab elements
-	iLink = form.elements['link'];
-	iUrl = form.elements['url'];
-	span = document.getElementById('res');
-	
-	// Set current configuration
-	iLink.checked = prefs.injectingEnabled;
-	iUrl.checked = prefs.addressEnabled;
-	
-	// Set up listener for form changes
-	form.addEventListener('change', function(){
-		var submitButton = document.getElementById('submit');
-		submitButton.disabled = false;
-	});
-	
-	// Set up listener for a form submit
-	form.addEventListener('submit', function(evt){
+	// Settings
+	var address, inject;
+
+	function setInfoText(text) {
+		span.innerText = text;
+			
+		// Removing the animation class
+		span.classList.remove('run-animation');
+
+		// Triggering reflow /* The actual magic */
+		span.offsetWidth = span.offsetWidth;
+
+		// Re-adding the animation class
+		span.classList.add('run-animation');
+		
+		// Remove text when animation is done
+		
+		span.addEventListener('webkitAnimationEnd', function(){
+			span.innerText = '';
+		});
+	};
+
+	function submitHandler(evt) {
 		evt.preventDefault();
 
 		// Get content
-		var link = iLink.checked;
-		var url = iUrl.checked;
+		var valAddress = inAddress.checked;
+		var valInject = inInject.checked;
 		
 		// Verify that the content has changed
 		var hasChanged = false;
-		if (link !== prefs.injectingEnabled) {
-			localStorage['injecting'] = link;
-			prefs.injectingEnabled = link;
+		if (valAddress !== address) {
+			M.Storage.setAddress(valAddress);
+			address = valAddress;
 			hasChanged = true;
 		}
 		
-		if (url !== prefs.addressEnabled) {
-			localStorage['address'] = url;
-			prefs.addressEnabled = url;
+		if (valInject !== inject) {
+			M.Storage.setInject(valInject);
+			inject = valInject;
 			hasChanged = true;
 		}
 		
 		if (hasChanged) {
-			chrome.runtime.sendMessage({command: 'prefs-changed', 
-				preferences : prefs});
+			chrome.runtime.sendMessage({command: 'prefs-changed'});
 			_gaq.push(['_trackEvent', 'Settings saved', 'clicked']);
 			
 			setInfoText('Saved');
@@ -74,28 +59,50 @@ window.onload = function() {
 		} else {
 			setInfoText('Nothing has changed');
 		}
-	});
+	};
+
+	return {
+		init : function() {
+			loadScript('storage', function() {
+
+				// Get reference to the form
+				form = document.form;
+				
+				// Grab elements
+				inAddress	= form.elements['address'];
+				inInject	= form.elements['inject'];
+				span = document.getElementById('res');
+			
+				// Get configuration
+				address = M.Storage.getAddress();
+				inject 	= M.Storage.getInject();
+
+				// Set current configuration
+				inAddress.checked 	= address;
+				inInject.checked 	= inject;
+			
+				// Set up listener for form changes
+				form.addEventListener('change', function(){
+					var submitButton = document.getElementById('submit');
+					submitButton.disabled = false;
+				});
+			
+				// Set up listener for a form submit
+				form.addEventListener('submit', submitHandler);
+			});
+		}
+	}
+}());
+window.onload = function() {
+	M.Options.init();
 }
 
-var setInfoText = function(text) {
-	span.innerText = text;
-		
-	// Removing the animation class
-	span.classList.remove('run-animation');
-
-	// Triggering reflow /* The actual magic */
-	span.offsetWidth = span.offsetWidth;
-
-	// Re-adding the animation class
-	span.classList.add('run-animation');
-	
-	// Remove text when animation is done
-	
-	span.addEventListener('webkitAnimationEnd', function(){
-		span.innerText = '';
-	});
+function loadScript(scriptName, callback) {
+    var scriptEl = document.createElement('script');
+    scriptEl.src = chrome.extension.getURL('lib/' + scriptName + '.js');
+    scriptEl.addEventListener('load', callback, false);
+    document.head.appendChild(scriptEl);
 }
-
 
 // GOOGLE ANALYTICS
 var _gaq = _gaq || [];
@@ -107,4 +114,3 @@ _gaq.push(['_trackPageview']);
   ga.src = 'https://ssl.google-analytics.com/ga.js';
   var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
 })();
-

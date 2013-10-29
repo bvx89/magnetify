@@ -23,6 +23,7 @@ M = (function() {
 		},
 
 		onMessage : function(message, sender, response) {
+			// URL sent from content script
 			if (message.command === 'convert-url') {
 				var link = message.link;
 				var id = sender.tab.id;
@@ -53,8 +54,21 @@ M = (function() {
 					M.addSpotifyURI(uri);
 					response(uri);
 				}
+
+			// Open URI, sent from popup				
 			} else if (message.command === 'open-uri') {
 				M.Page.setURIofTab(undefined, message.link);
+			
+			// Update listeners according to the settings
+			} else if (message.command === 'prefs-changed') {
+				// Get settings
+				var injecting = M.Storage.getInject();
+				var address = M.Storage.getAddress();
+
+				// Update listeners
+				M.Settings.setListenerSettings(injecting, address);
+
+				console.log('settings changed');
 			}
 	
 		},

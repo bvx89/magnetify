@@ -17,6 +17,7 @@ M.Popup = (function() {
 			var url = $(this).data('url');
 			// window.close();
 			console.log(url);
+			_gaq.push(['_trackEvent', 'Top List link', 'clicked']);
 			chrome.runtime.sendMessage({command: "open-uri", link: url});
 		});
 
@@ -118,6 +119,7 @@ $(document).ready(function() {
 */
 
 	M.Popup.init();
+
 });
 
 
@@ -135,3 +137,14 @@ function loadScript(scriptName, callback) {
     scriptEl.addEventListener('load', callback, false);
     document.head.appendChild(scriptEl);
 }
+
+// GOOGLE ANALYTICS
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-43115914-1']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = 'https://ssl.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
