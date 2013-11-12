@@ -14,7 +14,7 @@ html > body div#container {
 body {
 	background: rgb(43,43,43);
 	background: -webkit-linear-gradient(top, rgb(30,30,30) 0%,rgb(15,15,15) 31%,rgb(15,15,15) 100%);
-	font-family: 'Roboto', serif;
+	font-family: Arial, sans-serif;
 	font-size:1em; 
 	line-height:1.4; 
 	margin:0; 
@@ -23,7 +23,6 @@ body {
 }
 
 h1 {
-	font-family: 'Roboto', serif;
 	font-size: 30px;
 	margin: 5px 0px;
 }
@@ -35,9 +34,10 @@ header {
 	top: 0px;
 	left: 0px;
 	right: 0px;
-	background: rgba(40, 40, 40, 0);
+	background: rgba(40, 40, 40, 0.8);
 	height: 50px;
 	width: 300px;
+	z-index: 2;
 }
 
 h3, h4 , a:link {
@@ -52,6 +52,8 @@ div.link {
 	height: 45px;
 	background: rgba(255,255,255, 0.1);
 	color: rgb(250, 250, 250);
+	-webkit-user-select: none;
+	user-select: none;
 }
 
 div.line {

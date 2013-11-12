@@ -25,7 +25,7 @@ function callback(e) {
 		chrome.runtime.sendMessage({command: 'convert-url', link: url}, 
 			function(uri) {
 				console.log('opening uri: ' + uri);
-				window.location.href = uri
+				window.location.href = uri;
 			}
 		);
 		

@@ -20,9 +20,8 @@
 	},
 	"content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
 	"permissions": [
-		"tabs", "<all_urls>", "http://www.spoti.fi/", "http://ws.spotify.com/lookup"
+		"tabs", "storage", "<all_urls>", "http://www.spoti.fi/", "http://ws.spotify.com/lookup"
 	],
 	"options_page": "src/options/options.html"
-
 
 }

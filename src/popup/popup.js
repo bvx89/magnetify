@@ -117,17 +117,10 @@ $(document).ready(function() {
 		document.body.style.width = "300px"
 		}, 50);
 */
+	console.log('init');
 
 	M.Popup.init();
 
-});
-
-
-// Render the popup in background
-chrome.runtime.onMessage.addListener(function(message, sender, response) {
-	if (message.command === 'render-popup') {
-		M.Popup.render();
-	}
 });
 
 

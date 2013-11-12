@@ -15,6 +15,10 @@ M = (function() {
 	    scriptEl.src = chrome.extension.getURL('lib/' + scriptName + '.js');
 	    scriptEl.addEventListener('load', callback, false);
 	    document.head.appendChild(scriptEl);
+	};
+
+	function compareObj(obj1, obj2) {
+		return JSON.stringify(obj1) === JSON.stringify(obj2);
 	}
 
 	return {
@@ -73,6 +77,36 @@ M = (function() {
 	
 		},
 
+		/*
+		*	Callback for when changes have been applied to
+		*	the list of links/lookups
+		*/
+		onStored : function(changes, namespace) {
+			for (key in changes) {
+			    var storageChange = changes[key];
+			    var newVal = storageChange.newValue;
+
+			    // Find out which item was changed
+			    switch (key) {
+		    	case 'links':
+		    		if (!compareObj(newVal, 
+		    						lastLinks)) {
+		    			M.Storage.setLinks(newVal);
+		    			lastLinks = newVal;
+		    		}
+
+		    		break;
+		    	case 'lookup':
+		    		if (compareObj(storageChange.newValue, 
+		    						lookupObjects)) {
+		    			M.Storage.setLookup(newVal);
+		    			lookupObjects = newVal;		
+		    		}
+		    		break;
+			    }
+		  	}
+		},
+
 		addSpotifyURI : function(uri) {
 			// Find out if the URI is new
 			var isNew = true;
@@ -97,7 +131,7 @@ M = (function() {
 				}
 
 				// Store the links
-				M.Storage.setLinks(lastLinks);
+				M.Storage.setSyncLinks(lastLinks);
 			}
 		},
 
@@ -113,7 +147,7 @@ M = (function() {
 				lookupObjects.pop();
 
 			// Save in storage
-			M.Storage.setLookup(lookupObjects);
+			M.Storage.setSyncLookup(lookupObjects);
 
 			// Notify popup
 			chrome.runtime.sendMessage({command: "render-popup"});
@@ -127,8 +161,10 @@ M = (function() {
 			// Wait for the storage file to load
 			loadScript('storage', function() {
 				// Get stored data
-				lastLinks = M.Storage.getLinks();
-				lookupObjects = M.Storage.getLookup();
+				M.Storage.sync(function(lookup, links) {
+					lookupObjects = lookup;
+					lastLinks = links;
+				});
 
 				// Get stored preferences
 				var address = M.Storage.getAddress();
@@ -213,7 +249,8 @@ M.Settings = (function() {
 	// Sites that will not be injected
 	var illegalPaths = ["chrome-devtools://", 
 						"chrome-extension://",
-						"chrome://newtab/"];
+						"chrome://newtab/",
+						"chrome://extensions/"];
 	var spotifyPaths = ["//open.spotify.com", 
 						"//play.spotify.com"];
 
@@ -334,96 +371,91 @@ M.Parser = (function() {
 
 
 M.Page = (function () {
-	var mainTab;
-
-
 	function injectTabById(tabId) {
+		console.log('injecting tab: ' + tabId);
 		chrome.tabs.executeScript(tabId, {file : "src/listener.js"});
 	};
 
+	/*
+	* 	Get's the current tab, quite unsafe as it doesn't
+	*	check if it's a valid tab
+	*/
 	function getCurrentTab(callback) {
-		// Get selected tab
 		chrome.tabs.query(
 			{						
 			"currentWindow": true,
 			"active": true,
 			"windowType": "normal"
-			}, function(tabObject) {
-				callback(tabObject[0]);
+			}, function(tabObjects) {
+				callback(tabObjects);
 			});
 	};
 
-	function getURLofTab(tabId, callback) {
-		getCurrentTab(function(tabObject) {
-			callback(tabObject.url);
+	/*
+	*	Get's a tab object given an id
+	*/
+	function getTabById(tabId, callback) {
+		// Get selected tab
+		chrome.tabs.get(tabId, callback);
+	};
+
+	/*
+	*	Tries to get a valid tab and send uri change to it
+	*/
+	function setURI(uri) {
+		var typeOfTab = {
+		'active': true,
+		'windowType': 'normal'
+		};
+
+		chrome.tabs.query(typeOfTab, function(tabObjects) {
+			for (var t in tabObjects) {
+				// Validate the current tab
+				if (tabObjects[t].url !== undefined 
+					&& !isIllegalPath(tabObjects[t].url)
+					&& !isSpotifyPath(tabObjects[t].url)) {
+
+					// Found a "good" tab, inject it
+					forceChangeOfURI(tabObjects[t].id, uri, function(response) {
+						if (response !== undefined) {
+							console.log('success');
+						} else {
+							console.log('failure on tab ' + tabObjects[t].id);
+						}
+					});
+					break;
+				}
+			}
+
 		});
-	}
-
-	function setURIofTab(tabId, uri) {
-		if (tabId === undefined) {
-			// If mainTab not set
-			if (mainTab === undefined) {
-				// Tell the current tab to open URI
-				getCurrentTab(function(tabObject) {
-					mainTab = tabObject.id;
-					forceChangeOfURI(mainTab, uri);
-				});
-			} else {
-				// Be sure that mainTab exists
-				chrome.tabs.get(mainTab, function(tab) {
-					if (tab !== undefined) {
-						forceChangeOfURI(tab.id, uri);
-					} else {
-
-						// Find a new tab to replace it
-						mainTab = undefined;
-						setURIofTab(undefined, uri);
-					}
-				});
-			}
-			
-		} else {
-			if (mainTab === undefined) {
-				mainTab = tabId;
-			}
-			forceChangeOfURI(tabId, uri);
-		}
 	};
 
-	function forceChangeOfURI(tabId, uri) {
-		console.log("opening tabId: " + tabId + " with uri: " + uri);
-		chrome.tabs.sendMessage(tabId, {command: "inject-uri", link: uri}, 
-			function(response) {
-	    		console.log(response);
-	  		}
-	  	);
-	}
+	function forceChangeOfURI(tabId, uri, callback) {
+		chrome.tabs.sendMessage(tabId, 
+								{command: "inject-uri", link: uri}, 
+								callback);
+	};
 
-	function handleAddressChange(url) {
-		// Validate that the path is to Spotify
-		var isSpotifyPath = !M.Settings.getSpotifyPaths.every(
-			function(path) {
-				// Only need one element to return false
-				// for it to be false
-				return url.indexOf(path) === -1;
+	function isSpotifyPath(url) {
+		// Check if the url is to the Spotify web player
+		var sPaths = M.Settings.getSpotifyPaths;
+		for (var s in sPaths) {
+			if (url.indexOf(sPaths[s]) !== -1) {
+				return true;
 			}
-		);
-
-		if (isSpotifyPath) {
-
-			// Close tab
-			chrome.tabs.remove(tabId, function() {
-				// Get spotify URI from URL
-				var URI = M.Parser.createUriFromURL(url);
-
-				// Use undefined index to get the current tab 
-				// after the spotify tab has been closed
-				M.Page.setURIofTab(undefined, URI);
-
-				// Notify M object
-				M.addSpotifyURI(URI);
-			});
 		}
+		return false;
+	};
+
+	function isIllegalPath(url) {
+		// Check if the url is to the Spotify web player
+		var iPaths = M.Settings.getIllegalPaths;
+		for (var i in iPaths) {
+			if (url.indexOf(iPaths[i]) !== -1) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	return {
@@ -431,33 +463,49 @@ M.Page = (function () {
 		pageUpdated : function(tabId, changeInfo) {
 			// If page is loading.
 			if (changeInfo.status === 'loading' && M.Settings.isAddressChecking) {
-				
+				// get tab object for this id
+				getTabById(tabId, function(tab) {
+					
+					// If it's a Spotify tab, close it
+					if (!isIllegalPath(tab.url) && isSpotifyPath(tab.url)) {
+						console.log('spotify tab found ' + tab.id);
+						chrome.tabs.remove(tabId, function() {
+							// Get spotify URI from URL
+							var uri = M.Parser.createUriFromURL(tab.url);
+							
+							// Let Page object find a tab ID to enter URI
+							setURI(uri);
 
-				getURLofTab(tabId, function(correctURL) {
-					handleAddressChange(correctURL);
-				});	
+							// Notify M object
+							M.addSpotifyURI(uri);
+						});
+					}
+
+				});
 				
 			// Inject site with JS if it's valid and done loading
 			} else if (changeInfo.status === 'complete' && M.Settings.isInjecting) {
-				getURLofTab(tabId, function(correctURL) {
-					if (correctURL === undefined) return;
+				
+				// Get URL of the tab first
+				getTabById(tabId, function(tab) {
 
-					// Validate that the page is not in the excluded list
-					var isNotExcluded = M.Settings.getIllegalPaths.every(
-						function(path) {
-							// Only need one element to return false for it to be false
-							return correctURL.indexOf(path) === -1;
-						}
-					);
+					// If the tab is undefined, return
+					if (tab.url === undefined) {
+						return;
+					}
 
-					if (isNotExcluded)
-						injectTabById(tabId);
+					// Verify that it's not illegal
+					if (!isIllegalPath(tab.url))
+						injectTabById(tab.id);
 				});
 			} 
 		},
 
 		setURIofTab : function(tabId, uri) {
-			setURIofTab(tabId, uri);
+			if (tabId === undefined)
+				setURI(uri);
+			else 
+				forceChangeOfURI(tabId, uri);
 		}
 	}
 }());
@@ -468,3 +516,6 @@ M.init();
 
 // Message listener in chrome, always enabled
 chrome.runtime.onMessage.addListener(M.onMessage);
+
+// Save listener
+chrome.storage.onChanged.addListener(M.onStored);
