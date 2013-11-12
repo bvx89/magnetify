@@ -22,6 +22,7 @@
 	"permissions": [
 		"tabs", "storage", "<all_urls>", "http://www.spoti.fi/", "http://ws.spotify.com/lookup"
 	],
+	"key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC85tMeVbwlpGTGeGEQrvW7WpkztEd01N3Ka3i37NYPyrrLbge0QyekU0iMjCxBdA0yvezZl91o0qLO5oecbjQg6g0qz0AUECMHu6S6Qkn65NlI9xQP/SIhA3Qm+07X0S3FMujC9CKaYGlxCLlBLYi/eiOa6+kUvCWqRSwueP3s1wIDAQAB",
 	"options_page": "src/options/options.html"
 
 }
