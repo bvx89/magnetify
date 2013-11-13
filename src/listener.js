@@ -40,6 +40,9 @@ chrome.runtime.onMessage.addListener(
 		if (message.command === 'inject-uri') {
 			response('opening uri');
 			window.location.href = message.link;
+		} else if (message.command === 'open-search') {
+			response('opening search results');
+			console.log(message.data);
 		}
 	}
 );

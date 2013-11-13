@@ -1,6 +1,6 @@
 {
 	"name": "Magnetify",
-	"version": "0.9.4",
+	"version": "1.0.0",
 	"manifest_version": 2,
 	
 	"description": "This extension will make all spotify links open in your desktop app instead of the web player",
@@ -15,12 +15,12 @@
 	
 	"author": "Lasse Brudeskar Vikås",
 	"background": {
-		"scripts": ["lib/jquery-2.0.3.min.js", "lib/storage.js", "src/background.js"],
-		"persistent": false
+		"page" : "src/background/background.html"
 	},
 	"content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
 	"permissions": [
-		"tabs", "storage", "<all_urls>", "http://www.spoti.fi/", "http://ws.spotify.com/lookup"
+		"tabs", "storage", "<all_urls>", "contextMenus",
+		"http://www.spoti.fi/", "http://ws.spotify.com/lookup"
 	],
 	"key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC85tMeVbwlpGTGeGEQrvW7WpkztEd01N3Ka3i37NYPyrrLbge0QyekU0iMjCxBdA0yvezZl91o0qLO5oecbjQg6g0qz0AUECMHu6S6Qkn65NlI9xQP/SIhA3Qm+07X0S3FMujC9CKaYGlxCLlBLYi/eiOa6+kUvCWqRSwueP3s1wIDAQAB",
 	"options_page": "src/options/options.html"

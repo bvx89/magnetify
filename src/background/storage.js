@@ -1,6 +1,5 @@
 // Make M.* equal to empty objects if not defined
 var M = M || {};
-M.Storage = M.Storage || {};
 
 /**
 *	Stores and gets object in localStorage or chrome storage.
@@ -25,7 +24,7 @@ M.Storage = (function() {
 		
 		console.log(obj);
 		
-		if(!obj || obj == 'undefined') {
+		if(!obj || obj === 'undefined') {
 			obj = placeholder;
 		} else {
 			obj = JSON.parse(obj);

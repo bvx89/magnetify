@@ -5,6 +5,8 @@ M.Storage = M.Storage || {};
 M.Popup = (function() {
 	var template;
 	var container;
+	var objects;
+	
 	function render(data, index) {
 		// Clone the template
 		var t = $(template).clone();
@@ -22,7 +24,7 @@ M.Popup = (function() {
 		});
 
 		// Set ID of link
-		t.attr('id', (index+1));
+		t.attr('id', +(index+1));
 
 		// Find out which type of data
 		switch (data.info.type) {
@@ -69,7 +71,6 @@ M.Popup = (function() {
 	}
 
 	function renderAll() {
-		var objects = M.Storage.getLookup();
 		for(var i in objects) {
 			render(objects[i], i);
 		}
@@ -88,14 +89,13 @@ M.Popup = (function() {
 
 	return {
 		init : function() {
-			loadScript('storage', function() {
-				// Find the template to use for links and
-				// the container to append each link to
-				template = $( '#tmpl' );
-				container = $( '#container' );		
+			objects = bgWindow.M.getLookupObjects();
+			// Find the template to use for links and
+			// the container to append each link to
+			template = $( '#tmpl' );
+			container = $( '#container' );		
 
-				renderAll();
-			});
+			renderAll();
 		},
 
 		
@@ -105,6 +105,9 @@ M.Popup = (function() {
 	}
 
 }());
+
+// Get the background window object to access the storage
+var bgWindow = chrome.extension.getBackgroundPage();
 
 $(document).ready(function() {
 	/*
@@ -122,14 +125,6 @@ $(document).ready(function() {
 	M.Popup.init();
 
 });
-
-
-function loadScript(scriptName, callback) {
-    var scriptEl = document.createElement('script');
-    scriptEl.src = chrome.extension.getURL('lib/' + scriptName + '.js');
-    scriptEl.addEventListener('load', callback, false);
-    document.head.appendChild(scriptEl);
-}
 
 // GOOGLE ANALYTICS
 var _gaq = _gaq || [];
