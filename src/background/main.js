@@ -1,128 +1,118 @@
-// Make M.* equal to empty objects if not defined
-var M = {};
-M.Settings = M.Settings || {};
-M.Parser = M.Parser || {};
-M.Page = M.Page || {};
-M.Storage = M.Storage || {};
+var chrome = chrome || {},
+	jQuery = jQuery || {};
 
 // Main Object for the Magnetify namespace
-M = (function() {
-	var lastLinks;
-	var lookupObjects;
+var M = (function ($) {
+    'use strict';
+	var lastLinks, lookupObjects;
 
 	function compareObj(obj1, obj2) {
 		return JSON.stringify(obj1) === JSON.stringify(obj2);
 	}
 
 	return {
-		pageUpdated : function(tabId, changeInfo) {
+		pageUpdated : function (tabId, changeInfo) {
 			M.Page.pageUpdated(tabId, changeInfo);
 		},
 
-		onMessage : function(message, sender, response) {
+		onMessage : function (message, sender, response) {
 			// URL sent from content script
-			if (message.command === 'convert-url') {
-				var link = message.link;
-				var id = sender.tab.id;
+			switch (message.command) {
+			case 'convert-url':
+				if (!M.Settings.isInjecting()) {
+					break;	
+				}
+					
+				var link = message.link,
+					id = sender.tab.id,
+					uri;
 				
 				// If it's a redirect, find out what the URL really is
 				if (link.indexOf('spoti.fi') !== -1) {
-					
-					//TODO : Replace with jQuery
-
-					// Start XHR request
-					var xhr = new XMLHttpRequest();
-					xhr.open("GET", link, true);
-					xhr.onreadystatechange = function() {
-						// Done redirection, now we have the page
-						if (xhr.readyState == 4) {
-						
-							// Get the page as a string
-							var page = xhr.responseText;
-							var uri = findUriFromHTML(page);
-							saveSong(url)
-							changeURLofTab(id, uri);
+                    $.ajax({
+                        url: link,
+                        success: function (data) {
+                            var uri = M.Parser.findUriFromHTML(data);
+							M.addSpotifyURI(uri);
+							M.Page.setURIofTab(undefined, uri);
 						}
-						
-					}
-					xhr.send();
+                    });
 				} else {
-					var uri = M.Parser.createUriFromURL(message.link);
+					uri = M.Parser.createUriFromURL(message.link);
 					M.addSpotifyURI(uri);
 					response(uri);
 				}
+				break;
 
-			// Open URI, sent from popup				
-			} else if (message.command === 'open-uri') {
-				M.Page.setURIofTab(undefined, message.link);
-			
-			// Update listeners according to the settings
-			} else if (message.command === 'prefs-changed') {
-				// Get settings
-				var injecting = M.Storage.getInject();
-				var address = M.Storage.getAddress();
-
-				// Update listeners
-				M.Settings.setListenerSettings(injecting, address);
-
-				console.log('settings changed');
+			// Store the URI given
+			case 'store-uri':
+				M.addSpotifyURI(message.link);
+				break;
+			default:
+				return;
 			}
-	
 		},
 
 		/*
 		*	Callback for when changes have been applied to
 		*	the list of links/lookups
 		*/
-		onStored : function(changes, namespace) {
-			for (key in changes) {
-			    var storageChange = changes[key];
-			    var newVal = storageChange.newValue;
-
-			    // Find out which item was changed
-			    switch (key) {
-		    	case 'links':
-		    		if (!compareObj(newVal, 
-		    						lastLinks)) {
-		    			M.Storage.setLinks(newVal);
-		    			lastLinks = newVal;
-		    		}
-
-		    		break;
-		    	case 'lookup':
-		    		if (compareObj(storageChange.newValue, 
-		    						lookupObjects)) {
-		    			M.Storage.setLookup(newVal);
-		    			lookupObjects = newVal;		
-		    		}
-		    		break;
-			    }
-		  	}
+		
+		onStored : function (changes, namespace) {
+			for (var key in changes) {
+				var storageChange = changes[key],
+					newVal = storageChange.newValue;
+				
+				// Find out which item was changed
+				switch (key) {
+				case 'links':
+					if (!compareObj(newVal, lastLinks)) {
+						M.Storage.setLinks(newVal);
+						lastLinks = newVal;
+					}
+					
+					break;
+				case 'lookup':
+					if (compareObj(storageChange.newValue,
+									lookupObjects)) {
+						
+						M.Storage.setLookup(newVal);
+						lookupObjects = newVal;		
+					}
+					break;
+				default:
+					return;
+				}
+			}
 		},
+		
 
-		addSpotifyURI : function(uri) {
+		addSpotifyURI : function (uri) {
 			// Find out if the URI is new
 			var isNew = true;
-			for(var link in lastLinks) {
-				if (lastLinks[link] === uri)
+			$.each(lastLinks, function (i, item) {
+				if (item === uri) {
 					isNew = false;
-			}
+					return false;
+				}
+			});
 			
 			if (isNew) {
 				// Append first in the list
 				lastLinks.unshift(uri);
 
 				// Remove last if too many
-				if (lookupObjects.length > M.Settings.getMaxNumSongs)
+				if (lookupObjects.length > M.Settings.getMaxNumSongs()) {
 					lookupObjects.pop();
+				}
 
 				// Ask spotify for the Spotify object in background
 				if (uri.indexOf('playlist') !== -1) {
-					M.Lookup.getSpecialObject(uri, function(obj) {
+					M.Lookup.getSpecialObject(uri, function (obj) {
 						M.addLookupObject(obj);
 					});
 				} else {
-					M.Lookup.getDefaultObject(uri, function(obj) {
+					M.Lookup.getDefaultObject(uri, function (obj) {
 						M.addLookupObject(obj);
 					});
 				}
@@ -135,13 +125,14 @@ M = (function() {
 		/**
 		*	Puts new object in front
 		*/
-		addLookupObject : function(obj) {
+		addLookupObject : function (obj) {
 			// Set the newest object first
 			lookupObjects.unshift(obj);
 
 			// Pop the oldest if needed
-			if (lookupObjects.length > M.Settings.getMaxNumSongs)
+			if (lookupObjects.length > M.Settings.getMaxNumSongs()) {
 				lookupObjects.pop();
+			}
 
 			// Save in storage
 			M.Storage.setSyncLookup(lookupObjects);
@@ -150,31 +141,34 @@ M = (function() {
 			chrome.runtime.sendMessage({command: "render-popup"});
 		},
 
-		getLookupObjects : function() {
+		getLookupObjects : function () {
 			return lookupObjects;
 		},
 
-		init : function() {
+		init : function () {
 			// Get stored data
-			M.Storage.sync(function(lookup, links) {
+			M.Storage.sync(function (lookup, links) {
 				lookupObjects = lookup;
 				lastLinks = links;
 			});
 
-			// Get stored preferences
-			var address = M.Storage.getAddress();
-			var injecting = M.Storage.getInject();
-
-			// Set preferences inside the current settings
-			M.Settings.setListenerSettings(injecting, address);
+			// Update listeners
+			M.Settings.setListenerSettings(M.Storage.getInject(),
+											M.Storage.getAddress());
+			
+			// Update image viewing option
+			M.Settings.setImage(M.Storage.getImage());
 			
 			// Activate the context menu
 			M.Menu.init();
 		}
-	}
-}());
+	};
+}(jQuery));
 
-$(document).ready(function() {
+
+var window = window || {};
+window.onload = function () {
+	'use strict';
 	// Init the main object
 	M.init();
 
@@ -185,4 +179,4 @@ $(document).ready(function() {
 	// Save listener
 	chrome.storage.onChanged.addListener(M.onStored);
 	
-});
+};

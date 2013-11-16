@@ -1,86 +1,96 @@
-// Make M.* equal to empty objects if not defined
-var M = M || {};
-M.Storage = M.Storage || {};
+// Get the background window object
+var M = M || {},
+	window = window || {},
+	document = document || {},
+	chrome = chrome || {};
 
-M.Popup = (function() {
-	var template;
-	var container;
-	var objects;
+
+M.Popup = (function ($) {
+	'use strict';
+	
+	// DOM
+	var $template,
+		$container,
+	
+	// Objects to render
+		objects,
+	
+	// Background
+		page;
 	
 	function render(data, index) {
 		// Clone the template
-		var t = $(template).clone();
+		var $t = $($template).clone();
 
 		// Set the thumbnail pic
-		t.find('img')[0].src = data.thumb;
+		$t.find('img')[0].src = data.thumb;
 
 		// Register click events
-		t.on('click', function() {
+		$t.on('click', function () {
 			var url = $(this).data('url');
-			// window.close();
-			console.log(url);
 			_gaq.push(['_trackEvent', 'Top List link', 'clicked']);
-			chrome.runtime.sendMessage({command: "open-uri", link: url});
+			page.setURIofTab(undefined, url);
+			// chrome.runtime.sendMessage({command: "open-uri", link: url});
 		});
 
 		// Set ID of link
-		t.attr('id', +(index+1));
+		$t.attr('id', +(index+1));
 
 		// Find out which type of data
 		switch (data.info.type) {
 			case 'track':
-				renderTrack(data.track, t);
+				renderTrack(data.track, $t);
 				break;
 			case 'album':
-				renderAlbum(data.album, t);
+				renderAlbum(data.album, $t);
 				break;
 			case 'artist':
-				renderArtist(data.artist, t);
+				renderArtist(data.artist, $t);
 				break;
 			case 'playlist':
-				renderPlaylist(data.playlist, t);
+				renderPlaylist(data.playlist, $t);
 				break;
 		}
 
 		// Append link
-		$(container).append(t);
+		$($container).append($t);
 	}
 
-	function renderPlaylist(data, t) {
-		t.data('url', data.href);
-		t.find('.track')[0].innerHTML = data.id;
-		t.find('.artist')[0].innerHTML = 'Playlist ID:';
+	function renderPlaylist(data, $t) {
+		$t.data('url', data.href);
+		$t.find('.track')[0].innerHTML = data.id;
+		$t.find('.artist')[0].innerHTML = 'Playlist ID:';
 	}
 
-	function renderArtist(data, t) {
-		t.data('url', data.href);
-		t.find('.track')[0].innerHTML = data.name;
-		t.find('.artist')[0].innerHTML = 'Artist:';
+	function renderArtist(data, $t) {
+		$t.data('url', data.href);
+		$t.find('.track')[0].innerHTML = data.name;
+		$t.find('.artist')[0].innerHTML = 'Artist:';
 	}
 	
-	function renderAlbum(data, t) {
-		t.data('url', data.href);
-		t.find('.artist')[0].innerHTML = data.artist;
-		t.find('.track')[0].innerHTML = data.name;
+	function renderAlbum(data, $t) {
+		$t.data('url', data.href);
+		$t.find('.artist')[0].innerHTML = data.artist;
+		$t.find('.track')[0].innerHTML = data.name;
 	}
 
-	function renderTrack(data, t) {
-		t.data('url', data.href);
-		t.find('.artist')[0].innerHTML = data.artists[0].name;
-		t.find('.track')[0].innerHTML = data.name;
+	function renderTrack(data, $t) {
+		$t.data('url', data.href);
+		$t.find('.artist')[0].innerHTML = data.artists[0].name;
+		$t.find('.track')[0].innerHTML = data.name;
 	}
 
 	function renderAll() {
-		for(var i in objects) {
-			render(objects[i], i);
-		}
+		$.each(objects, function (i, item) {
+			render(item, i);
+		});
 
 		addAnimation();
 	}
 
 	function addAnimation() {
-		$('.link div').hover(function(){
-		    $(this).addClass('hover');
+		$('.link div').hover(function (){
+			$(this).addClass('hover');
 		}, function() {
 			$(this).removeClass('hover');
 		});
@@ -88,43 +98,29 @@ M.Popup = (function() {
 	}
 
 	return {
-		init : function() {
+		init : function (bgWindow) {
 			objects = bgWindow.M.getLookupObjects();
+			page = bgWindow.M.Page;
+			
 			// Find the template to use for links and
 			// the container to append each link to
-			template = $( '#tmpl' );
-			container = $( '#container' );		
+			$template = $('#tmpl');
+			$container = $('#container');
 
 			renderAll();
 		},
 
 		
-		render : function() {
+		render : function () {
 			renderAll();
 		}
-	}
+	};
 
-}());
+}(jQuery));
 
-// Get the background window object to access the storage
-var bgWindow = chrome.extension.getBackgroundPage();
-
-$(document).ready(function() {
-	/*
-	 * The worst hack ever to fix the scrollbar issue  
-	 * when opening the Browser UI popup
-	 */	
-	 /*
-	document.body.style.width = "301px"
-	setTimeout(function() {
-		document.body.style.width = "300px"
-		}, 50);
-*/
-	console.log('init');
-
-	M.Popup.init();
-
-});
+window.onload = function() {
+	chrome.runtime.getBackgroundPage(M.Popup.init);
+};
 
 // GOOGLE ANALYTICS
 var _gaq = _gaq || [];

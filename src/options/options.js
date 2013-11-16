@@ -1,108 +1,132 @@
-// Make M.* equal to empty objects if not defined
-var M = M || {};
-M.Storage = M.Storage || {};
-
+var M = M || {},
+	chrome = chrome || {},
+	document = document || {},
+	window = window || {};
 
 M.Options = (function() {
-	// Page elements
-	var form, span, inAddress, inInject;
+	// DOM elements
+	var $form, 
+		$span, 
+		$address, 
+		$inject,
+		$image,
 
 	// Settings
-	var address, inject;
+		address, 
+		inject,
+		image,
+	
+	// Background reference
+		storage,
+		settings;
 
 	function setInfoText(text) {
-		span.innerText = text;
+		$span.innerText = text;
 			
 		// Removing the animation class
-		span.classList.remove('run-animation');
+		$span.classList.remove('run-animation');
 
 		// Triggering reflow /* The actual magic */
-		span.offsetWidth = span.offsetWidth;
+		$span.offsetWidth = $span.offsetWidth;
 
 		// Re-adding the animation class
-		span.classList.add('run-animation');
+		$span.classList.add('run-animation');
 		
-		// Remove text when animation is done
-		
-		span.addEventListener('webkitAnimationEnd', function(){
-			span.innerText = '';
+		// Remove text when animation is done		
+		$span.addEventListener('webkitAnimationEnd', function(){
+			$span.innerText = '';
 		});
-	};
+	}
 
 	function submitHandler(evt) {
 		evt.preventDefault();
 
 		// Get content
-		var valAddress = inAddress.checked;
-		var valInject = inInject.checked;
+		var valAddress = $address.checked;
+		var valInject = $inject.checked;
+		var valImage = $image.checked;
 		
 		// Verify that the content has changed
 		var hasChanged = false;
 		if (valAddress !== address) {
-			M.Storage.setAddress(valAddress);
+			storage.setAddress(valAddress);
 			address = valAddress;
 			hasChanged = true;
 		}
 		
 		if (valInject !== inject) {
-			M.Storage.setInject(valInject);
+			storage.setInject(valInject);
 			inject = valInject;
 			hasChanged = true;
 		}
 		
+		if (valImage !== image) {
+			storage.setImage(valInject);
+			image = valImage;
+			hasChanged = true;
+		}
+		
+		
+		// If one of the fields have changed, store it in settings and storage
 		if (hasChanged) {
-			chrome.runtime.sendMessage({command: 'prefs-changed'});
-			_gaq.push(['_trackEvent', 'Settings saved', 'clicked']);
+			settings.setListenerSettings(inject, address);				
+			settings.setImage(image);
 			
+			storage.setInject(inject);
+			storage.setAddress(address);
+			storage.setImage(image);
+			
+			_gaq.push(['_trackEvent', 'Settings saved', 'clicked']);			
 			setInfoText('Saved');
 			
 		} else {
 			setInfoText('Nothing has changed');
 		}
-	};
+	}
 
 	return {
 		init : function() {
-			loadScript('storage', function() {
-
-				// Get reference to the form
-				form = document.form;
-				
-				// Grab elements
-				inAddress	= form.elements['address'];
-				inInject	= form.elements['inject'];
-				span = document.getElementById('res');
+			storage = bgWindow.M.Storage;
+			settings = bgWindow.M.Settings;
 			
-				// Get configuration
-				address = M.Storage.getAddress();
-				inject 	= M.Storage.getInject();
-
-				// Set current configuration
-				inAddress.checked 	= address;
-				inInject.checked 	= inject;
+			// Get reference to the form
+			$form = document.form;
 			
-				// Set up listener for form changes
-				form.addEventListener('change', function(){
-					var submitButton = document.getElementById('submit');
-					submitButton.disabled = false;
-				});
+			// Grab elements
+			$span		= document.getElementById('res');
+			$inject		= $form.elements.inject;			
+			$address	= $form.elements.address;
+			$image		= $form.elements.image;
+		
+			// Get configuration
+			inject	= settings.isInjecting();;
+			address = settings.isAddressChecking();
+			image	= settings.isShowingAlbum();
 			
-				// Set up listener for a form submit
-				form.addEventListener('submit', submitHandler);
+			// Set current configuration
+			$address.checked	= address;
+			$inject.checked		= inject;
+			$image.checked		= image;
+		
+			// Set up listener for form changes
+			$form.addEventListener('change', function(){
+				var $submit = document.getElementById('submit');
+				$submit.disabled = false;
 			});
+		
+			// Set up listener for a form submit
+			$form.addEventListener('submit', submitHandler);
+			
 		}
-	}
+	};
 }());
+
+// Get the background window object to access the storage
+var bgWindow = chrome.extension.getBackgroundPage();
+
 window.onload = function() {
 	M.Options.init();
-}
-
-function loadScript(scriptName, callback) {
-    var scriptEl = document.createElement('script');
-    scriptEl.src = chrome.extension.getURL('lib/' + scriptName + '.js');
-    scriptEl.addEventListener('load', callback, false);
-    document.head.appendChild(scriptEl);
-}
+};
 
 // GOOGLE ANALYTICS
 var _gaq = _gaq || [];

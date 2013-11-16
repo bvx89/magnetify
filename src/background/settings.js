@@ -1,16 +1,23 @@
-M.Settings = (function() {
+var M = M || {},
+	chrome = chrome || {};
+
+M.Settings = (function () {
+	'use strict';
+	
 	// Sites that will not be injected
-	var illegalPaths = ["chrome-devtools://", 
+	var illegalPaths = ["chrome-devtools://",
 						"chrome-extension://",
 						"chrome://newtab/",
-						"chrome://extensions/"];
-	var spotifyPaths = ["//open.spotify.com", 
-						"//play.spotify.com"];
+						"chrome://extensions/"],
+		spotifyPaths = ["//open.spotify.com",
+						"//play.spotify.com"],
+		
+		injectingEnabled = true,
+		addressEnabled = true,
+		showAlbum = true,
+		preloadAlbum = false,
 
-	var injectingEnabled = true;
-	var addressEnabled = true;
-
-	var maxNumSongs = 10;
+		maxNumSongs = 10;
 
 	return {
 
@@ -21,7 +28,7 @@ M.Settings = (function() {
 		*	
 		*	This is to avoid multiple calls on the same function.
 		*/
-		setListenerSettings : function(injecting, address) {
+		setListenerSettings : function (injecting, address) {
 			injectingEnabled = injecting;
 			addressEnabled = address;
 			
@@ -33,15 +40,39 @@ M.Settings = (function() {
 				chrome.tabs.onUpdated.addListener(M.pageUpdated);
 			}
 		},
+		
+		/*
+		*	Simple function to store the image viewing option
+		*/
+		setImage : function (image) {
+			showAlbum = image;
+		},
 
-		isInjecting : injectingEnabled,
+		// Get dynamic content through functions
+		isInjecting : function () {
+			return injectingEnabled;
+		},
 
-		isAddressChecking : addressEnabled,
+		isAddressChecking : function () {
+			return addressEnabled;
+		},
+		
+		isPreloadingAlbum : function () {
+			return preloadAlbum;
+		},
+		
+		isShowingAlbum : function () {
+			return showAlbum;
+		},
 
+		getMaxNumSongs : function () {
+			return maxNumSongs;
+		},
+		
+		// Get static content through direct reference
 		getIllegalPaths : illegalPaths,
 
 		getSpotifyPaths : spotifyPaths,
 
-		getMaxNumSongs : maxNumSongs
-	}
+	};
 }());

@@ -1,6 +1,7 @@
 <html>
 <head>
 	<script src="../../lib/jquery-2.0.3.min.js"></script>
+	<script src="../../lib/imageloader.js"></script>
 	<script src="main.js"></script>
 	<script src="storage.js"></script>
 	<script src="settings.js"></script>
@@ -8,69 +9,7 @@
 	<script src="page.js"></script>
 	<script src="lookup.js"></script>
 	<script src="menu.js"></script>
-
 </head>
 <body>
-	<div class="_overlay" 
-		style="	position: fixed;
-				width: 100%;
-				height: 100%;
-				background: rgba(0,0,0,0.4);
-				z-index: 500;">
-		<div class="_box"
-			style="width: 350px;
-					height: 500px;
-					position: fixed;
-					top: 50%;
-					left: 50%;
-					margin-left: -175px;
-					margin-top:	-250px;
-					border: 1px solid black;
-					background: rgb(43,43,43);
-					background: -webkit-linear-gradient(top, rgb(30,30,30) 0%,rgb(15,15,15) 31%,rgb(15,15,15) 100%);
-					box-shadow: 0px 0px 60px 10px #fff;
-					overflow-x: hidden;
-					overflow-y: auto;">
-			<header style="	text-align: center;
-							border-bottom: 1px rgb(50, 50, 50) solid;
-							top: 0px;
-							left: 0px;
-							right: 0px;
-							background: rgba(40, 40, 40, 0.8);
-							height: 40px;
-							width: inherit;
-							padding-top: 5px;">
-				<h1 style=" font-size: 30px;
-							margin: 0px;
-							text-align: center;">Search result</h1>
-			</header>
-			<div id="tmpl" style="position: relative;
-									width: inherit;
-									border-bottom: 1px solid rgb(20, 20, 20);
-									height: 45px;
-									background: rgba(255,255,255, 0.1);
-									color: rgb(250, 250, 250);
-									-webkit-user-select: none;
-									user-select: none;">
-				<a href="">
-				<div class="_link" style="width: inherit;
-										height: 45px;">					
-					<h4 class="_artist" style="	margin: 0px 0px 0px 10px;
-												padding-top: 2px;
-												overflow: hidden;
-												font-size: 15px; 
-												height: 18px;">
-											</h4>
-					<h3 class="_track" style="margin: 0px 0px 0px 10px;
-											padding-top: 2px;
-											overflow: hidden;
-											font-size: 17px;
-											height: 22px;">
-											</h3>
-				</div>
-				</a>
-			</div>
-		</div>
-	</div>
 </body>
 </html>

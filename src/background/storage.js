@@ -1,20 +1,24 @@
-// Make M.* equal to empty objects if not defined
-var M = M || {};
+var M = M || {},
+	chrome = chrome || {},
+	localStorage = localStorage || {};
 
 /**
 *	Stores and gets object in localStorage or chrome storage.
-*/	
-M.Storage = (function() {
+*/
+M.Storage = (function () {
+	'use strict';
+	
 	// Indexes
-	var INDEX_LINKS 	= 'links';
-	var INDEX_INJECT	= 'injecting';
-	var INDEX_ADDRESS 	= 'address';
-	var INDEX_LOOKUP	= 'lookup';
+	var INDEX_LINKS		= 'links',
+		INDEX_INJECT	= 'injecting',
+		INDEX_ADDRESS	= 'address',
+		INDEX_LOOKUP	= 'lookup',
+		INDEX_IMAGE		= 'image';
 
 	// Default values for types
-	var DEFAULT_BOOLEAN = function(){return true};
-	var DEFAULT_ARRAY 	= function(){return new Array()};
-	var DEFAULT_OBJECT 	= function(){return {}};
+	function DEFAULT_BOOLEAN() { return true; }
+	function DEFAULT_ARRAY() { return []; }
+	function DEFAULT_OBJECT() { return {}; }
 
 	/**
 	*	Get's an array from localStorage using JSON parser
@@ -22,16 +26,14 @@ M.Storage = (function() {
 	function getObject(index, placeholder) {
 		var obj = localStorage[index];
 		
-		console.log(obj);
-		
-		if(!obj || obj === 'undefined') {
+		if (!obj || obj === 'undefined') {
 			obj = placeholder;
 		} else {
 			obj = JSON.parse(obj);
 		}
 
 		return obj;
-	};
+	}
 
 	/**
 	*	Get's a boolean value from local storage
@@ -40,83 +42,93 @@ M.Storage = (function() {
 		var obj = localStorage[index];
 		
 		// Verify it's an object, and that it's either true or false
-		if(!obj) {
+		if (!obj) {
 			obj = placeholder;
-		} else if(obj === 'true') {
+		} else if (obj === 'true') {
 			obj = true;
-		} else if(obj === 'false') {
+		} else if (obj === 'false') {
 			obj = false;
 		}
 
 		return obj;
-	};
+	}
 
 	function setValue(index, value) {
 		localStorage[index] = value;
-	};
+	}
 
 	function setObject(index, value) {
 		localStorage[index] = JSON.stringify(value);
-	};
+	}
 
 
 	return {
 		// Address
-		getAddress : function() {
+		getAddress : function () {
 			return getValue(INDEX_ADDRESS, DEFAULT_BOOLEAN());
 		},
 
-		setAddress : function(value) {
+		setAddress : function (value) {
 			setValue(INDEX_ADDRESS, value);
 		},
 
 
 		// Injecting 
-		getInject : function() {
+		getInject : function () {
 			return getValue(INDEX_INJECT, DEFAULT_BOOLEAN());
 		},
 
-		setInject : function(value) {
+		setInject : function (value) {
 			setValue(INDEX_INJECT, value);
+		},
+		
+		
+		// Image
+		getImage : function () {
+			return getValue(INDEX_IMAGE, DEFAULT_BOOLEAN());
+		},
+
+		setImage : function (value) {
+			setValue(INDEX_IMAGE, value);
 		},
 
 
 		// Links
-		getLinks : function(callback) {
+		getLinks : function (callback) {
 			return getObject(INDEX_LOOKUP, DEFAULT_ARRAY());
 		},
 
-		setLinks : function(value, callback) {
+		setLinks : function (value, callback) {
 			setObject(INDEX_LINKS, value);
 		},
 
-		setSyncLinks : function(value, callback) {
+		setSyncLinks : function (value, callback) {
 			chrome.storage.sync.set({'links': value}, callback);
 			setObject(INDEX_LINKS, value);
 		},
 
 
 		// Lookup
-		getLookup : function() {
+		getLookup : function () {
 			return getObject(INDEX_LOOKUP, DEFAULT_OBJECT());
 		},
 
-		setLookup : function(value) {
+		setLookup : function (value) {
 			setObject(INDEX_LOOKUP, value);
 		},
 
-		setSyncLookup : function(value, callback) {
+		setSyncLookup : function (value, callback) {
 			chrome.storage.sync.set({'lookup': value}, callback);
 			setObject(INDEX_LOOKUP, value);
 		},
 
-		// Syncs the localStorage objects
-		sync : function(callback) {
-			chrome.storage.sync.get('lookup', function(o1) {
+		// Syncing the localStorage objects
+		sync : function (callback) {
+			chrome.storage.sync.get('lookup', function (o1) {
 				var lookup = o1.lookup || DEFAULT_ARRAY();
 				setObject(INDEX_LOOKUP, lookup);
 
-				chrome.storage.sync.get('links', function(o2) {
+				chrome.storage.sync.get('links', function (o2) {
 					var links = o2.links || DEFAULT_ARRAY();
 					setObject(INDEX_LINKS, links);
 
@@ -125,6 +137,5 @@ M.Storage = (function() {
 				});
 			});
 		}
-	}
-
+	};
 }());
