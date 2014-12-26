@@ -1,141 +1,234 @@
-var M = M || {},
-	chrome = chrome || {},
-	localStorage = localStorage || {};
+/**
+ * @author Lasse Brudeskar Vikås
+ */
+var Magnetify = Magnetify || {};
 
 /**
-*	Stores and gets object in localStorage or chrome storage.
-*/
-M.Storage = (function () {
+ * Stores and gets object in localStorage or chrome storage.
+ */
+(function (M) {
 	'use strict';
-	
-	// Indexes
-	var INDEX_LINKS		= 'links',
-		INDEX_INJECT	= 'injecting',
-		INDEX_ADDRESS	= 'address',
-		INDEX_LOOKUP	= 'lookup',
-		INDEX_IMAGE		= 'image';
 
-	// Default values for types
-	function DEFAULT_BOOLEAN() { return true; }
-	function DEFAULT_ARRAY() { return []; }
-	function DEFAULT_OBJECT() { return {}; }
+    // Indexes
+	var LINKS		= 'links',		// Clicking links
+		INJECT 	= 'injecting',	// Inject listener on pages
+		ADDRESS	= 'address',	// Check for address of URL in tab
+		LOOKUP 	= 'lookup',		// Array of lookup object
+		IMAGE		= 'image',		// Load images in listener
+		MENU		= 'menu',		// Show context-menu
 
-	/**
-	*	Get's an array from localStorage using JSON parser
-	*/
-	function getObject(index, placeholder) {
-		var obj = localStorage[index];
-		
-		if (!obj || obj === 'undefined') {
-			obj = placeholder;
-		} else {
-			obj = JSON.parse(obj);
-		}
-
-		return obj;
-	}
+	// Shorthand
+		storage = chrome.storage.sync;
 
 	/**
-	*	Get's a boolean value from local storage
-	*/
-	function getValue(index, placeholder) {
-		var obj = localStorage[index];
-		
-		// Verify it's an object, and that it's either true or false
-		if (!obj) {
-			obj = placeholder;
-		} else if (obj === 'true') {
-			obj = true;
-		} else if (obj === 'false') {
-			obj = false;
-		}
+	 *	Get an object from storage.
+	 *
+	 * @param 	{string} index The desired index to get
+	 * @param 	{object} placeholder Default value to return if index not found
+	 * @param 	{function} callback Called on completion with the right values
+	 */
+	function getValue(index, placeholder, callback) {
+		storage.get(index, function(item) {
+			// Check if item was unknown
+			if (!item.hasOwnProperty(index)) {
+				
+				// Configure default object
+				item[index] = placeholder;
 
-		return obj;
+			// Item found
+			} else {
+
+				// Fix boolean values
+				if (item[index] === 'true') {
+					item[index] = true;
+				} else if (item[index] === 'false') {
+					item[index] = false
+				}
+			}
+
+
+			callback(item);
+		});
 	}
 
-	function setValue(index, value) {
-		localStorage[index] = value;
+
+	/**
+	 * Stores an object in storage
+	 * @param {string} index Index of the object to set
+	 * @param {object} value Object to be set
+	 * @param {Function} callback Called on completion
+	 */
+	function setValue(index, value, callback) {
+		var obj = {};
+		obj[index] = value;
+		storage.set(obj, callback);
 	}
 
-	function setObject(index, value) {
-		localStorage[index] = JSON.stringify(value);
+
+	function createGetterPromise(index, placeholder) {
+		var promise = new Promise(function(resolve, reject) {
+			getValue(index, placeholder, resolve);
+		});
+
+		return promise;
 	}
 
 
-	return {
-		// Address
-		getAddress : function () {
-			return getValue(INDEX_ADDRESS, DEFAULT_BOOLEAN());
+	M.Storage = {
+
+	    // Public variables
+	    INDEX_LINKS		: LINKS,		// Clicking links
+		INDEX_INJECT 	: INJECT,	// Inject listener on pages
+		INDEX_ADDRESS	: ADDRESS,	// Check for address of URL in tab
+		INDEX_LOOKUP 	: LOOKUP,		// Array of lookup object
+		INDEX_IMAGE		: IMAGE,		// Load images in listener
+		INDEX_MENU		: MENU,		// Show context-menu
+
+		/**
+		 * Get link
+		 * 
+		 * @param  {Function} cb Callback with value
+		 */
+		getLinks : function (cb) {
+			getValue(LINKS, [], cb);
 		},
 
-		setAddress : function (value) {
-			setValue(INDEX_ADDRESS, value);
-		},
-
-
-		// Injecting 
-		getInject : function () {
-			return getValue(INDEX_INJECT, DEFAULT_BOOLEAN());
-		},
-
-		setInject : function (value) {
-			setValue(INDEX_INJECT, value);
-		},
-		
-		
-		// Image
-		getImage : function () {
-			return getValue(INDEX_IMAGE, DEFAULT_BOOLEAN());
-		},
-
-		setImage : function (value) {
-			setValue(INDEX_IMAGE, value);
-		},
-
-
-		// Links
-		getLinks : function (callback) {
-			return getObject(INDEX_LOOKUP, DEFAULT_ARRAY());
-		},
-
-		setLinks : function (value, callback) {
-			setObject(INDEX_LINKS, value);
-		},
-
-		setSyncLinks : function (value, callback) {
-			chrome.storage.sync.set({'links': value}, callback);
-			setObject(INDEX_LINKS, value);
+		/**
+		 * Set link
+		 * 
+		 * @param {boolean} value
+		 * @param {Function} cb Callback on completion
+		 */
+		setLinks : function (value, cb) {
+			setValue(LINKS, value, cb);
 		},
 
 
-		// Lookup
-		getLookup : function () {
-			return getObject(INDEX_LOOKUP, DEFAULT_OBJECT());
+
+		/**
+		 * Get inject
+		 * 
+		 * @param  {Function} cb Callback with value
+		 */
+		getInject : function (cb) {
+			getValue(INJECT, true, cb);
 		},
 
-		setLookup : function (value) {
-			setObject(INDEX_LOOKUP, value);
+		/**
+		 * Set inject
+		 * 
+		 * @param {boolean} value
+		 * @param {Function} cb Callback on completion
+		 */
+		setInject : function (value, cb) {
+			setValue(INJECT, value, cb);
 		},
 
-		setSyncLookup : function (value, callback) {
-			chrome.storage.sync.set({'lookup': value}, callback);
-			setObject(INDEX_LOOKUP, value);
+
+
+		/**
+		 * Get address
+		 * 
+		 * @param  {Function} cb Callback with value
+		 */
+		getAddress : function (cb) {
+			getValue(ADDRESS, true, cb);
 		},
 
-		// Syncing the localStorage objects
-		sync : function (callback) {
-			chrome.storage.sync.get('lookup', function (o1) {
-				var lookup = o1.lookup || DEFAULT_ARRAY();
-				setObject(INDEX_LOOKUP, lookup);
+		/**
+		 * Set address
+		 * 
+		 * @param {boolean} value
+		 * @param {Function} cb Callback on completion
+		 */
+		setAddress : function (value, cb) {
+			setValue(ADDRESS, value, cb);
+		},
 
-				chrome.storage.sync.get('links', function (o2) {
-					var links = o2.links || DEFAULT_ARRAY();
-					setObject(INDEX_LINKS, links);
 
-					// Notify and return new values
-					callback(lookup, links);
-				});
+
+		/**
+		 * Get lookup
+		 * 
+		 * @param  {Function} cb Callback with value
+		 */
+		getLookup : function (cb) {
+			getValue(LOOKUP, {}, cb);
+		},
+
+		/**
+		 * Set lookup
+		 * 
+		 * @param {boolean} value
+		 * @param {Function} cb Callback on completion
+		 */
+		setLookup : function (value, cb) {
+			setValue(LOOKUP, value, cb);
+		},
+
+
+
+		/**
+		 * Get image
+		 * 
+		 * @param  {Function} cb Callback with value
+		 */
+		getImage : function (cb) {
+			getValue(IMAGE, true, cb);
+		},
+
+		/**
+		 * Set image
+		 * 
+		 * @param {boolean} value
+		 * @param {Function} cb Callback on completion
+		 */
+		setImage : function (value, cb) {
+			setValue(IMAGE, value, cb);
+		},
+
+
+
+		/**
+		 * Get image
+		 * 
+		 * @param  {Function} cb Callback with value
+		 */
+		getMenu : function (cb) {
+			getValue(MENU, true, cb);
+		},
+
+		/**
+		 * Set image
+		 * 
+		 * @param {boolean} value
+		 * @param {Function} cb Callback on completion
+		 */
+		setMenu : function (value, cb) {
+			setValue(MENU, value, cb);
+		},
+
+
+
+
+		/**
+		 * Gets all synced values
+		 * 
+		 * @param  {Function} callback Callback with all values
+		 */
+		sync : function (callback) {		
+			var promises = [
+					createGetterPromise(LINKS, true),
+					createGetterPromise(INJECT, true),
+					createGetterPromise(ADDRESS, true),
+					createGetterPromise(LOOKUP, {}),
+					createGetterPromise(IMAGE, true),
+					createGetterPromise(MENU, true)
+			];
+
+			Promise.all(promises).then(function(values) {
+				callback(values);
 			});
 		}
 	};
-}());
+})(Magnetify);

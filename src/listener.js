@@ -1,8 +1,3 @@
-var document = document || {},
-	window = window || {},
-	chrome = chrome || {};
-
-
 // Callback function for the click event
 var ClickListener = (function () {
 	'use strict';
@@ -197,8 +192,10 @@ var Dialog = (function () {
 		// global DOM elements
 		$style,
 		$loadBox,
-		$overlay;
-
+		$overlay,
+		
+		// Keep track of whether to generate new background box or not
+		isOverlayCreated = false;
 	
 	/*
 	*	Helper function to generate DOM-elements with a defined style.
@@ -241,6 +238,7 @@ var Dialog = (function () {
 			trackName;
 
 		// Show informative string if empty
+		console.log(data);
 		if (data.length === 0) {
 			$track = genEl(track);
 			$track.innerHTML = 'No results';
@@ -360,6 +358,10 @@ var Dialog = (function () {
 			$style.innerHTML += 'body{ margin: 0; padding: 0; }';
 			document.body.appendChild($style);
 			
+		},
+		
+		dismiss : function () {
+			removeOverlay();
 		}
 	};
 }());
@@ -378,6 +380,9 @@ chrome.runtime.onMessage.addListener(
 		case 'loading':
 			Dialog.showLoading();
 			response();
+			break;
+		case 'empty':
+			Dialog.dismiss();
 			break;
 		default:
 			return;

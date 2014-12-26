@@ -1,7 +1,7 @@
-var M = M || {},
+var Magnetify = Magnetify || {},
 	chrome = chrome || {};
 
-M.Page = (function () {
+(function (M) {
 	'use strict';
 	
 	function injectTabById(tabId) {
@@ -59,9 +59,9 @@ M.Page = (function () {
 
 	function isSpotifyPath(url) {
 		// Check if the URL is to the Spotify Web Player
-		var sPaths = M.Settings.getSpotifyPaths;
-		for (var s in sPaths) {
-			if (url.indexOf(sPaths[s]) !== -1) {
+		var sPaths = M.Config.spotifyPaths;
+		for (var i = sPaths.length - 1; i >= 0; i--) {
+			if (url.indexOf(sPaths[i]) !== -1) {
 				return true;
 			}
 		}
@@ -70,8 +70,8 @@ M.Page = (function () {
 
 	function isIllegalPath(url) {
 		// Check if the url is to the Spotify web player
-		var iPaths = M.Settings.getIllegalPaths;
-		for (var i in iPaths) {
+		var iPaths = M.Config.illegalPaths;
+		for (var i = iPaths.length - 1; i >= 0; i--) {
 			if (url.indexOf(iPaths[i]) !== -1) {
 				return true;
 			}
@@ -79,12 +79,12 @@ M.Page = (function () {
 		return false;
 	}
 
-	return {
+	M.Page = {
 
 		pageUpdated : function(tabId, changeInfo) {
 			// If page is loading.
 			if (changeInfo.status === 'loading' &&
-				M.Settings.isAddressChecking()) {
+				M.Config.addressEnabled) {
 				
 				// get tab object for this id
 				getTabById(tabId, function(tab) {
@@ -93,7 +93,7 @@ M.Page = (function () {
 					if (!isIllegalPath(tab.url) && isSpotifyPath(tab.url)) {
 						
 						// Remove the tab only when injecting
-						if (M.Settings.isInjecting()) {
+						if (M.Config.injectingEnabled) {
 							chrome.tabs.remove(tabId, function() {
 								// Get spotify URI from URL
 								var uri = M.Parser.createUriFromURL(tab.url);
@@ -123,7 +123,7 @@ M.Page = (function () {
 				
 			// Inject site with JS if it's valid and done loading
 			} else if (changeInfo.status === 'complete' &&
-						M.Settings.isInjecting()) {
+						M.Config.injectingEnabled) {
 				
 				// Get URL of the tab first
 				getTabById(tabId, function(tab) {
@@ -149,4 +149,4 @@ M.Page = (function () {
 			}
 		}
 	};
-}());
+}(Magnetify));

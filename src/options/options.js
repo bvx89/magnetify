@@ -1,24 +1,26 @@
-var M = M || {},
+var Magnetify = chrome.extension.getBackgroundPage().Magnetify || {},
 	chrome = chrome || {},
 	document = document || {},
 	window = window || {};
 
-M.Options = (function() {
+(function (M) {
 	// DOM elements
 	var $form, 
 		$span, 
 		$address, 
 		$inject,
 		$image,
+		$menu,
 
 	// Settings
 		address, 
 		inject,
 		image,
+		menu,
 	
 	// Background reference
 		storage,
-		settings;
+		config;
 
 	function setInfoText(text) {
 		$span.innerText = text;
@@ -42,12 +44,13 @@ M.Options = (function() {
 		evt.preventDefault();
 
 		// Get content
-		var valAddress = $address.checked;
-		var valInject = $inject.checked;
-		var valImage = $image.checked;
-		
+		var valAddress 	= $address.checked,
+			valInject 	= $inject.checked,
+			valImage 	= $image.checked,
+			valMenu 	= $menu.checked,
+			hasChanged 	= false;
+
 		// Verify that the content has changed
-		var hasChanged = false;
 		if (valAddress !== address) {
 			storage.setAddress(valAddress);
 			address = valAddress;
@@ -65,17 +68,16 @@ M.Options = (function() {
 			image = valImage;
 			hasChanged = true;
 		}
+
+		if (valMenu !== menu) {
+			storage.setMenu(valMenu);
+			menu = valMenu;
+			hasChanged = true;
+		}
 		
 		
 		// If one of the fields have changed, store it in settings and storage
 		if (hasChanged) {
-			settings.setListenerSettings(inject, address);				
-			settings.setImage(image);
-			
-			storage.setInject(inject);
-			storage.setAddress(address);
-			storage.setImage(image);
-			
 			_gaq.push(['_trackEvent', 'Settings saved', 'clicked']);			
 			setInfoText('Saved');
 			
@@ -84,10 +86,10 @@ M.Options = (function() {
 		}
 	}
 
-	return {
-		init : function() {
-			storage = bgWindow.M.Storage;
-			settings = bgWindow.M.Settings;
+	M.Options = {
+		init : function(bgWindow) {
+			storage = M.Storage;
+			config = M.Config;
 			
 			// Get reference to the form
 			$form = document.form;
@@ -97,16 +99,19 @@ M.Options = (function() {
 			$inject		= $form.elements.inject;			
 			$address	= $form.elements.address;
 			$image		= $form.elements.image;
+			$menu		= $form.elements.menu;
 		
 			// Get configuration
-			inject	= settings.isInjecting();;
-			address = settings.isAddressChecking();
-			image	= settings.isShowingAlbum();
+			inject	= config.injectEnabled;
+			address = config.addressEnabled;
+			image	= config.showAlbum;
+			menu	= config.menu;
 			
 			// Set current configuration
 			$address.checked	= address;
 			$inject.checked		= inject;
 			$image.checked		= image;
+			$menu.checked		= menu;
 		
 			// Set up listener for form changes
 			$form.addEventListener('change', function(){
@@ -119,13 +124,11 @@ M.Options = (function() {
 			
 		}
 	};
-}());
-
-// Get the background window object to access the storage
-var bgWindow = chrome.extension.getBackgroundPage();
+})(Magnetify);
 
 window.onload = function() {
-	M.Options.init();
+
+	Magnetify.Options.init();
 };
 
 // GOOGLE ANALYTICS

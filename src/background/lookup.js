@@ -1,25 +1,27 @@
-var M = M || {},
+var Magnetify = Magnetify || {},
 	jQuery = jQuery || {};
 
-M.Lookup = (function ($) {
+(function (M, $) {
     'use strict';
     
 	var LOOKUP_URL = 'http://ws.spotify.com/lookup/1/.json',
         EMBED_URL = 'https://embed.spotify.com/oembed/',
         SEARCH_URL = 'http://ws.spotify.com/search/1/track.json';
 
-	return {
+	M.Lookup = {
 		getDefaultObject : function (uri, callback) {
 			// Set up main lookup
 			var lookup = $.ajax({
-				url: LOOKUP_URL,
-				data: {uri: uri},
-				dataType: 'json'
-			}), embed = $.ajax({
-				url: EMBED_URL,
-				data: {url: uri},
-				dataType: 'json'
-			});
+					url: LOOKUP_URL,
+					data: {uri: uri},
+					dataType: 'json'
+				}), 
+
+				embed = $.ajax({
+					url: EMBED_URL,
+					data: {url: uri},
+					dataType: 'json'
+				});
 
 			// Wait til both are done
 			$.when(lookup, embed).done(function (main, extra) {
@@ -78,17 +80,16 @@ M.Lookup = (function ($) {
 			
 			// Look for the initial array of objects
 			$.when(search).done(function (data) {
-				// Limit the result by the settingssettings or length of data
-				var max = (data.tracks.length < M.Settings.getMaxNumSongs() ?
-							data.tracks.length :
-							M.Settings.getMaxNumSongs()),
-					results,
-					thumbs;
+				var results,
+					thumbs,
+
+					// Limit the result by the config limit or length of items
+					max = Math.min(data.tracks.length, M.Config.maxNumSongs);	
 
 				// If no results, return
 				if (max === 0) {
-					callback();
-				} else if (!M.Settings.isShowingAlbum()) {
+					callback('empty');
+				} else if (!M.Config.showAlbum) {
 
 					// Return plain objects
 					callback(data.tracks.slice(0, max));
@@ -161,4 +162,4 @@ M.Lookup = (function ($) {
 			});
 		}
 	};
-}(jQuery));
+}(Magnetify, jQuery));

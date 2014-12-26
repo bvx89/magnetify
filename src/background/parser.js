@@ -1,6 +1,6 @@
-var M = M || {};
+var Magnetify = Magnetify || {};
 
-M.Parser = (function () {
+(function (M) {
 	'use strict';
 		
 	// When parsing spoti.fi URLs, how far down the page should
@@ -74,9 +74,9 @@ M.Parser = (function () {
 
 	}
 
-	return {
+	M.Parser = {
 		createUriFromURL : function (URL) {
 			return createUriFromURL(URL);
 		}
 	};
-}());
+})(Magnetify);
